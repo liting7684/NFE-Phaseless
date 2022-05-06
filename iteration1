@@ -1,0 +1,37 @@
+function [E1_iter_n,error]=iteration1(E1n_amp,E1_iter_n,E2n_amp,Ex_arb_phase,num_iteration,k,d1,d2)
+
+%用z1平面的测量幅度值E1n代替代替场分布E1_iter_n中的幅值
+%equation(4.6) and (4.7) of graduation paper
+
+if num_iteration==1
+    E1_iter_n=E1n_amp.*exp(1j.*Ex_arb_phase);
+    E1t_iter_n=E1_iter_n;
+else
+    angle1n=angle(E1_iter_n);
+    E1t_iter_n=E1n_amp.*exp(1j.*angle1n); 
+end
+
+%对迭代场E1t_iter_n进行切向场转换，得到E2_iter_n
+%%equation(4.8) of graduation paper
+E2_iter_n=ifft2b(fft2b(E1t_iter_n).*exp(1j.*k.*(d1-d2)));
+
+%用z2平面的测量幅度值E2n代替代替场分布E2_iter_n中的幅值
+%equation(4.9) 9of graduation paper
+angle2n=angle(E2_iter_n);
+E2t_iter_n=E2n_amp.*exp(1j.*angle2n);
+
+%对迭代场E2t_iter_n进行切向场转换，得到E1_iter_n
+%%equation(4.10) of graduation paper
+E1_iter_n=ifft2b(fft2b(E2t_iter_n).*exp(-1j.*k.*(d1-d2)));
+
+%计算相位还原误差
+for j=1:1:133
+    for k=1:1:95
+        error_numerator(j,k)=(abs1(E1_iter_n(j,k))-E1n_amp(j,k))^2;
+        error_denominator(j,k)=(E1n_amp(j,k))^2;
+    end
+end
+error_numerator_sum=sum(error_numerator(:));
+error_denominator_sum=sum(error_denominator(:));
+error=error_numerator_sum/error_denominator_sum;
+
